@@ -2,460 +2,540 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ビジョントレーニング</title>
-    <!-- Tailwind CSSを読み込みます -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- iPadやスマートフォンでの表示に最適化 --><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ビジョントレーニングアプリ</title>
+    <!-- Tailwind CSS CDN --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- フォント (Inter) --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* Googleフォント「M PLUS Rounded 1c」を読み込みます。丸みのあるフォントで、親しみやすい印象を与えます。 */
-        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap');
-        body {
-            font-family: 'M PLUS Rounded 1c', sans-serif;
-            touch-action: none; /* スマートフォンやタブレットでのタッチ操作時に、画面が動かないようにします */
+        /* HTML全体でフォントとタッチ操作の設定を統一 */
+        html, body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            /* スクロールやダブルタップズームを無効化し、アプリ風の操作感に */
+            touch-action: manipulation;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
         }
-        /* スライダーのつまみのスタイルを調整します */
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
+
+        /* フォーム要素のスタイルをリセット */
+        input, select, button {
             appearance: none;
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            border: 2px solid #4f46e5;
-            border-radius: 50%;
-            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
         }
-        input[type="range"]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            background: #ffffff;
-            border: 2px solid #4f46e5;
-            border-radius: 50%;
-            cursor: pointer;
+
+        /* カスタムセレクトボックスの矢印（iPadでのデフォルトスタイルを無効化するため） */
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='currentColor' class='w-6 h-6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E");
+            background-position: right 1rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em;
         }
-        /* アクティブなモードのボタンのスタイル */
-        .mode-button.active {
-            background-color: #4f46e5;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+        /* 「▶︎」ボタンのスタイル (枠なし、水色テキスト) */
+        #play-button {
+            background: none;
+            border: none;
+            color: #3b82f6; /* Tailwindのblue-500 (水色) */
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 700; /* bold */
+            padding: 1.25rem 3rem; /* py-5 px-12 */
+            cursor: pointer;
+            line-height: 1.75rem; /* text-2xl */
+            box-shadow: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: color 0.2s;
+        }
+        #play-button:hover,
+        #play-button:active {
+            background: none;
+            color: #2563eb; /* blue-600 */
+        }
+
+        /* トレーニング表示エリア (JS側で制御) */
+        #display-area {
+            /* * このエリアは JS によってクラスが制御されます。
+             * 1. 準備中: text-blue-500 text-5xl (よくみててね)
+             * 2. 問題表示: text-7xl font-bold (数字・文字)
+             * 3. 分散視: (クラスなし、子要素がabsolute配置)
+             * 4. 正解表示: text-5xl md:text-6xl font-bold text-blue-700 (正解)
+             */
+        }
+
+        /* 分散視で表示される個々の要素 */
+        .distributed-char {
+            position: absolute;
+            font-size: 4rem; /* 分散視の文字サイズ */
+            font-weight: 700;
+            color: #111;
+        }
+
+        /* 変更点: カウントダウン用の丸のCSS */
+        .circle-dot {
+            width: 3rem; /* 丸のサイズ */
+            height: 3rem; /* 丸のサイズ */
+            border-radius: 50%; /* 完全な丸にする */
+            margin: 0 0.5rem; /* 丸同士の間隔 */
+            display: inline-block; /* 横並びにする */
         }
     </style>
 </head>
-<body class="bg-slate-100 flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 h-screen w-screen overflow-hidden">
 
-    <div class="w-full max-w-5xl mx-auto">
-        
-        <header class="text-center mb-4">
-            <h1 class="text-3xl md:text-4xl font-bold text-slate-800">ビジョントレーニング</h1>
-        </header>
+    <!-- アプリ全体を囲うコンテナ --><div class="h-full w-full max-w-5xl mx-auto bg-white shadow-lg overflow-hidden">
 
-        <!-- モード選択 -->
-        <div class="flex justify-center gap-2 mb-4">
-            <button id="modeChase" class="mode-button w-full md:w-auto text-lg font-bold py-2 px-6 rounded-lg bg-white text-slate-700 transition-all">おいかけよう</button>
-            <button id="modeFind" class="mode-button w-full md:w-auto text-lg font-bold py-2 px-6 rounded-lg bg-white text-slate-700 transition-all">さがそう</button>
-        </div>
+        <!-- 1. 設定画面 --><div id="config-screen" class="flex flex-col h-full p-8 md:p-12 space-y-6 overflow-y-auto">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">ビジョントレーニング設定</h1>
 
-        <!-- トレーニング画面のコンテナ -->
-        <div id="canvas-container" class="w-full aspect-video bg-white rounded-2xl shadow-lg overflow-hidden border-4 border-slate-200 relative">
-            <canvas id="trainingCanvas"></canvas>
-            <!-- モード２用の情報表示 -->
-            <div id="findModeInfo" class="absolute top-0 left-0 w-full p-4 text-center hidden">
-                <div class="inline-flex items-center gap-4 bg-white/80 backdrop-blur-sm p-3 rounded-xl">
-                    <span id="targetText" class="text-xl md:text-2xl font-bold text-slate-800">このいろをさがそう！ →</span>
-                    <div id="targetColorDisplay" class="w-10 h-10 rounded-full border-2 border-slate-400"></div>
-                </div>
+            <div class="space-y-4">
+                <label for="training-type" class="block text-xl font-medium text-gray-700">トレーニングの種類</label>
+                <select id="training-type" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="number">1. 数字の瞬間視</option>
+                    <option value="char">2. 文字の瞬間視</option>
+                    <option value="distributed">3. 分散視・周辺視</option>
+                </select>
+            </div>
+
+            <!-- 難易度設定 (トレーニング種類によって表示切替) --><div id="config-difficulty" class="space-y-4">
+                <label for="difficulty" class="block text-xl font-medium text-gray-700">難易度 (桁数 / 文字数)</label>
+                <select id="difficulty" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                </select>
+            </div>
+            
+            <!-- 分散視の種類 (分散視用) --><div id="config-distributed-type" class="space-y-4 hidden">
+                <label for="distributed-type" class="block text-xl font-medium text-gray-700">分散視の種類</option>
+                <select id="distributed-type" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="A">意味なし文字</option>
+                    <option value="B">意味あり単語</option>
+                </select>
+            </div>
+
+            <!-- 表示時間 (秒単位に変更) --><div class="space-y-4">
+                <label for="display-time" class="block text-xl font-medium text-gray-700">表示時間 (秒)</label>
+                <select id="display-time" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="0.01">0.01秒</option>
+                    <option value="0.05">0.05秒</option>
+                    <option value="0.1">0.1秒</option>
+                    <option value="0.2">0.2秒</option>
+                    <option value="0.3">0.3秒</option>
+                    <option value="0.4">0.4秒</option>
+                    <option value="0.5" selected>0.5秒</option>
+                    <option value="0.7">0.7秒</option>
+                    <option value="1.0">1.0秒</option>
+                    <!-- 変更点: 1.5秒と2.0秒を追加 --><option value="1.5">1.5秒</option>
+                    <option value="2.0">2.0秒</option>
+                </select>
+            </div>
+
+            <!-- 試行回数 (削除) --><!-- スタートボタン --><div class="pt-6">
+                <button id="start-button" class="w-full bg-blue-600 text-white text-2xl font-bold py-6 rounded-lg shadow-md transition-transform active:scale-95">
+                    トレーニング開始
+                </button>
             </div>
         </div>
 
-        <!-- コントロールパネル -->
-        <div class="w-full mt-4 bg-white p-4 rounded-2xl shadow-lg">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+        <!-- 2. トレーニング実行画面 --><div id="training-screen" class="hidden flex-col h-full w-full">
+            <!-- ヘッダー (削除) --><!-- 戻るボタン (フッターに移動) --><!-- メインの表示エリア --><main class="flex-grow flex flex-col justify-center items-center w-full relative p-8">
                 
-                <!-- スタート・ストップボタン -->
-                <div class="flex gap-2 justify-center">
-                    <button id="startButton" class="w-full text-xl bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105">
-                        スタート
-                    </button>
-                    <button id="stopButton" class="w-full text-xl bg-pink-500 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-pink-600 focus:outline-none focus:ring-4 focus:ring-pink-300 transition-transform transform hover:scale-105">
-                        ストップ
-                    </button>
-                </div>
+                <!-- 1. 数字や文字、正解が表示される場所 --><div id="display-area" class="flex-grow flex justify-center items-center relative">
+                    <!-- JSによって内容とスタイルが制御されます --></div>
 
-                <!-- 設定項目 -->
-                <div id="controlsContainer" class="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <!-- モード１用コントロール -->
-                    <div id="chaseControls" class="contents">
-                        <div class="flex flex-col items-center">
-                            <label for="colorPicker" class="text-sm font-bold text-slate-600 mb-1">ボールのいろ</label>
-                            <input type="color" id="colorPicker" value="#14b8a6" class="w-16 h-10 p-1 bg-white border-2 border-slate-300 rounded-lg cursor-pointer">
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <label for="bgColorPicker" class="text-sm font-bold text-slate-600 mb-1">はいけいのいろ</label>
-                            <input type="color" id="bgColorPicker" value="#ffffff" class="w-16 h-10 p-1 bg-white border-2 border-slate-300 rounded-lg cursor-pointer">
-                        </div>
+                <!-- 2. 正解表示エリア (削除) --><!-- 3. コントロールボタンエリア (フッターとして画面下部に配置) --><footer class="w-full flex justify-between items-center h-24">
+                    
+                    <!-- 戻るボタン (左寄せ) --><button id="back-to-config-button" class="text-blue-600 text-lg py-2 px-4 rounded-lg active:bg-gray-200">
+                        <!-- 変更点: テキストをSVGアイコンに変更 -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
+                    </button>
+
+                    <!-- 中央のボタンエリア --><div class="flex justify-center items-center">
+                        <!-- 3a. ▶︎ ボタン (枠なしに変更) --><button id="play-button" class="hidden">
+                            ▶︎
+                        </button>
+
+                        <!-- 3b. 次へ進むボタン (正解表示後に表示) --><!-- 変更点: スタイルを変更 (bg-green-600 -> bg-blue-500, text-2xl py-5 px-12 -> text-lg py-3 px-8) --><button id="next-button" class="hidden bg-blue-500 text-white text-lg font-bold py-3 px-8 rounded-lg shadow-md transition-transform active:scale-95">
+                            次の問題へ
+                        </button>
                     </div>
-                     <!-- モード２用コントロール -->
-                    <div id="findControls" class="contents hidden">
-                         <div class="flex flex-col items-center justify-center">
-                            <label for="ballCountRange" class="text-sm font-bold text-slate-600 mb-1">ボールのかず</label>
-                            <input type="range" id="ballCountRange" min="3" max="25" value="10" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                        </div>
-                        <div class="flex flex-col items-center justify-center">
-                            <label for="intervalRange" class="text-sm font-bold text-slate-600 mb-1">きりかえじかん(秒)</label>
-                            <input type="range" id="intervalRange" min="2" max="10" value="5" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                        </div>
+
+                    <!-- 右側のスペーサー (戻るボタンと幅を合わせるため) --><div class="py-2 px-4 invisible">
+                        <!-- 変更点: テキストをSVGアイコンに変更 (invisibleなので見た目は変わりません) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                        </svg>
                     </div>
-                    <!-- 共通コントロール -->
-                    <div class="flex flex-col items-center">
-                        <label for="speedRange" class="text-sm font-bold text-slate-600 mb-1">はやさ</label>
-                        <input type="range" id="speedRange" min="1" max="10" value="2" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                    <div class="flex flex-col items-center">
-                        <label for="sizeRange" class="text-sm font-bold text-slate-600 mb-1">おおきさ</label>
-                        <input type="range" id="sizeRange" min="10" max="80" value="30" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                </div>
-            </div>
+                </footer>
+
+            </main>
         </div>
     </div>
 
-    <script>
+    <script type="module">
         // --- DOM要素の取得 ---
-        const canvasContainer = document.getElementById('canvas-container');
-        const canvas = document.getElementById('trainingCanvas');
-        const ctx = canvas.getContext('2d');
-
-        const startButton = document.getElementById('startButton');
-        const stopButton = document.getElementById('stopButton');
-        const modeChaseButton = document.getElementById('modeChase');
-        const modeFindButton = document.getElementById('modeFind');
+        const configScreen = document.getElementById('config-screen');
+        const trainingScreen = document.getElementById('training-screen');
         
-        // コントロール
-        const colorPicker = document.getElementById('colorPicker');
-        const speedRange = document.getElementById('speedRange');
-        const sizeRange = document.getElementById('sizeRange');
-        const bgColorPicker = document.getElementById('bgColorPicker');
-        const ballCountRange = document.getElementById('ballCountRange');
-        const intervalRange = document.getElementById('intervalRange');
+        const trainingTypeSelect = document.getElementById('training-type');
+        const difficultySelect = document.getElementById('difficulty');
+        const distributedTypeSelect = document.getElementById('distributed-type');
+        const displayTimeSelect = document.getElementById('display-time');
+        // const maxTrialsInput = document.getElementById('max-trials'); // 削除
         
-        // UI要素
-        const findModeInfo = document.getElementById('findModeInfo');
-        const targetColorDisplay = document.getElementById('targetColorDisplay');
-        const chaseControls = document.getElementById('chaseControls');
-        const findControls = document.getElementById('findControls');
+        const configDistributedType = document.getElementById('config-distributed-type');
+        const configDifficulty = document.getElementById('config-difficulty');
+        
+        const startButton = document.getElementById('start-button');
+        const backButton = document.getElementById('back-to-config-button');
+        
+        // const trialInfo = document.getElementById('trial-info'); // 削除
+        // const currentTrialSpan = document.getElementById('current-trial'); // 削除
+        // const totalTrialsSpan = document.getElementById('total-trials'); // 削除
+        
+        const displayArea = document.getElementById('display-area');
+        // const answerArea = document.getElementById('answer-area'); // 削除
+        const playButton = document.getElementById('play-button');
+        const nextButton = document.getElementById('next-button');
 
-        // --- グローバル変数 ---
-        let animationFrameId;
-        let findModeTimeoutId; // モード２の自動切換えタイマー
-        let isRunning = false;
-        let gameMode = 'chase'; // 'chase' or 'find'
-        let findModeState = 'idle'; // 'idle', 'preview', 'main'
+        // --- 状態管理変数 ---
+        let currentSettings = {};
+        // let currentTrial = 0; // 削除
+        // let maxTrials = 0; // 削除
+        let currentProblem = null; // 表示した問題（数字、文字列）
+        let distributedAnswers = []; // 分散視の答え（順番通り）
 
-        // ボールオブジェクト（単数・複数）
-        let ball = {}; // モード１用
-        let balls = []; // モード２用
-        let targetColor = ''; // モード２用
-        const findModeColors = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#8b5cf6', '#ec4899'];
+        // --- データセット ---
+        // 種類A（意味なし文字）用のひらがなのみ
+        const hiraganaChars = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+        
+        // 分散視B用の単語リスト (指定されたリスト)
+        const wordList = [
+            "バナナ", "てがみ", "くるま", "ボール", "すいか", "アイス", "カレー", "ノート", "テレビ", 
+            "えんぴつ", "けいたい", "バスてい", "ラーメン", "せんせい", "たいやき", "せっけん", "ひこうき", 
+            "サッカー", "こうえん", "ドーナツ", "パジャマ", "でんしゃ", "おにぎり", "にんじん", "ジュース", 
+            "テーブル", "しんぶん", "コンビニ", "すべりだい", "じてんしゃ", "バスケット", "まくらもと", 
+            "まどガラス", "にくじゃが", "せんたくき", "ゆうえんち", "おべんとう", "スイミング", "あさごはん", 
+            "ばんごはん", "じゅぎょう", "カメラマン", "サッカーボ－ル", "テレビゲーム", "うちゅうせん", 
+            "ハンバーガー", "おんがくかい", "たいいくかん", "にわとり", "きょうりゅう", "おこのみやき", 
+            "ハンバーグ", "おおさかじょう", "すいぞくかん", "にんぎょう", "スーパーマーケット", "どうぶつえん", 
+            "クリスマス", "しょうぼうしゃ", "おもちゃばこ", "トマトジュ－ス", "パンケーキ", "カレンダー", 
+            "ふうせんガム", "びじゅつかん", "おとしだま", "チョコレートケーキ", "まほうつかい", "うんどうかい", 
+            "サンドイッチ", "たんじょうび", "アイスクリーム"
+        ];
+        
+        // 変更点: 追加の単語リスト
+        const addedWordList = [
+            "イヌ", "ネコ", "ゾウ", "キリン", "ライオン", "トラ", "パンダ", "ウサギ", "サル", "クマ",
+            "こくご", "さんすう", "りか", "しゃかい", "おんがく", "たいいく", "かていか", "えいご",
+            "ゴール", "シュート", "チームワーク", "トレーニング", "ファウル", "パス", "ランニング",
+            "サッカー", "やきゅう", "バスケットボール", "テニス", "すいえい", "りくじょう",
+            "バレーボール", "じゅうどう", "ゴルフ", "スケート",
+            "フライパン", "スプーン", "カレーライス", "すし", "ラーメン", "ハンバーグ", "パスタ", "さかな",
+            "みそしる", "おにぎり", "サラダ", "オムライス",
+            "ギター", "ピアノ", "ドラム", "バイオリン", "トランペット", "ふえ", "たいこ", "キーボード",
+            "ハーモニカ", "カスタネット",
+            "くるま", "でんしゃ", "ひこうき", "ふね", "じてんしゃ", "バス", "タクシー", "トラック",
+            "オートバイ", "しんかんせん",
+            "ゴルフ", "バレーボール", "ラグビー",
+            "き", "ち", "め", "て", "ひ", "え", "け", "す", "や"
+        ];
 
-        // --- 関数の定義 ---
+        // 重複を削除 (Setを使う) - 変更点: 2つのリストを結合して重複削除
+        const uniqueWordList = [...new Set([...wordList, ...addedWordList])];
 
-        /**
-         * Canvasのサイズを親要素に合わせて調整
-         */
-        function resizeCanvas() {
-            canvas.width = canvasContainer.clientWidth;
-            canvas.height = canvasContainer.clientHeight;
-            draw(); // リサイズ時に再描画
-        }
 
-        /**
-         * メインの描画関数。ゲームモードに応じて描画を切り替える
-         */
-        function draw() {
-            // 背景をクリア
-            ctx.fillStyle = bgColorPicker.value;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // --- ヘルパー関数 ---
 
-            if (gameMode === 'chase') {
-                drawChaseMode();
-            } else {
-                drawFindMode();
+        // sleep関数 (async/await用)
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // ランダムな整数を生成 (min <= N <= max)
+        const getRandomInt = (min, max) => {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        };
+
+        // ランダムな文字列を生成 (ひらがな/カタカナ混合対応)
+        const getRandomString = (length, type) => {
+            if (type === 'number') {
+                return String(Math.floor(Math.random() * (10 ** length))).padStart(length, '0');
             }
-        }
-        
-        /**
-         * アニメーションのメインループ
-         */
-        function animate() {
-            if (!isRunning) return;
-
-            // 位置更新
-            if (gameMode === 'chase') {
-                updateChaseMode();
-            } else {
-                updateFindMode();
-            }
-            // 描画
-            draw();
             
-            animationFrameId = requestAnimationFrame(animate);
-        }
-
-        /**
-         * アニメーションを開始
-         */
-        function startAnimation() {
-            if (!isRunning) {
-                isRunning = true;
-                startButton.classList.add('opacity-50', 'cursor-not-allowed');
-                stopButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                if (gameMode === 'find') {
-                    runFindModeCycle(); // モード２のサイクルを開始
-                }
-                animate();
+            // typeが 'char' または指定なしの場合 (★ひらがなのみに変更)
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                // result += allChars[Math.floor(Math.random() * allChars.length)]; // 変更前
+                result += hiraganaChars[Math.floor(Math.random() * hiraganaChars.length)]; // 変更後
             }
-        }
+            return result;
+        };
 
-        /**
-         * アニメーションを停止
-         */
-        function stopAnimation() {
-            if (isRunning) {
-                isRunning = false;
-                findModeState = 'idle';
-                stopButton.classList.add('opacity-50', 'cursor-not-allowed');
-                startButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                cancelAnimationFrame(animationFrameId);
-                clearTimeout(findModeTimeoutId); // モード２のタイマーをクリア
-                draw(); // 停止時のメッセージを表示するため再描画
+        // 単語リストからランダムに1つ取得 (難易度引数は無視)
+        const getRandomWord = () => {
+            const list = uniqueWordList;
+            if (!list || list.length === 0) {
+                // 万が一のフォールバック
+                return getRandomString(5, 'char');
             }
-        }
-        
-        /**
-         * ゲームモードを切り替える
-         * @param {string} newMode - 'chase' または 'find'
-         */
-        function switchMode(newMode) {
-            stopAnimation();
-            gameMode = newMode;
-            findModeState = 'idle';
-            
-            if (newMode === 'chase') {
-                // UI切り替え
-                modeChaseButton.classList.add('active');
-                modeFindButton.classList.remove('active');
-                findModeInfo.classList.add('hidden');
-                chaseControls.classList.remove('hidden');
-                findControls.classList.add('hidden');
-                initChaseMode();
-            } else { // findモード
-                // UI切り替え
-                modeFindButton.classList.add('active');
-                modeChaseButton.classList.remove('active');
-                findModeInfo.classList.remove('hidden');
-                chaseControls.classList.add('hidden');
-                findControls.classList.remove('hidden');
-                setupFindModeTarget(); // 初期表示のためにターゲットの色だけ準備
-            }
-            draw();
-        }
+            return list[Math.floor(Math.random() * list.length)];
+        };
 
-        // --- モード１：おいかける ---
-        function initChaseMode() {
-            const speed = parseFloat(speedRange.value);
-            ball = {
-                x: canvas.width / 2,
-                y: canvas.height / 2,
-                radius: parseInt(sizeRange.value, 10),
-                color: colorPicker.value,
-                dx: speed / Math.sqrt(2),
-                dy: speed / Math.sqrt(2)
+        // --- 設定画面の動的変更 ---
+        trainingTypeSelect.addEventListener('change', () => {
+            const type = trainingTypeSelect.value;
+
+            configDistributedType.classList.add('hidden');
+            configDifficulty.classList.remove('hidden');
+
+            if (type === 'number') {
+                difficultySelect.innerHTML = `
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                `;
+            } else if (type === 'char') {
+                difficultySelect.innerHTML = `
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                `;
+            } else if (type === 'distributed') {
+                configDistributedType.classList.remove('hidden');
+                // 種類B (単語) の場合は難易度設定は不要だが、
+                // 種類A のために難易度設定は残す
+            difficultySelect.innerHTML = `
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5" selected>5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                `;
+            }
+        });
+
+        // --- 画面遷移ロジック ---
+
+        // スタートボタン
+        startButton.addEventListener('click', () => {
+            // 設定を保存
+            currentSettings = {
+                type: trainingTypeSelect.value,
+                difficulty: parseInt(difficultySelect.value),
+                distributedType: distributedTypeSelect.value,
+                displayTime: parseFloat(displayTimeSelect.value) * 1000, 
             };
-        }
+            // maxTrials = parseInt(maxTrialsInput.value) || 10; // 削除
+            // currentTrial = 0; // 削除
 
-        function drawChaseMode() {
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = ball.color;
-            ctx.fill();
-            ctx.closePath();
-        }
-
-        function updateChaseMode() {
-            ball.x += ball.dx;
-            ball.y += ball.dy;
-            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) ball.dx *= -1;
-            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) ball.dy *= -1;
-        }
-
-        // --- モード２：さがそう ---
-        
-        /**
-         * モード２のサイクルを開始・管理する関数
-         */
-        function runFindModeCycle() {
-            if (!isRunning) return;
+            // 試行回数表示を更新 (削除)
+            // totalTrialsSpan.textContent = maxTrials; // 削除
             
-            // 1. プレビューの準備
-            findModeState = 'preview';
-            setupFindModeTarget(); // 探す色を決め、ボール配列を空にする
-            draw(); // ボールがない状態で再描画
+            // 画面切り替え
+            configScreen.classList.add('hidden');
+            configScreen.classList.remove('flex');
+            trainingScreen.classList.add('flex');
+            trainingScreen.classList.remove('hidden');
 
-            // 2. 2秒後にメインの動きを開始
-            setTimeout(() => {
-                if (!isRunning) return; // プレビュー中に停止された場合
+            // 最初の問題を開始
+            startNextProblem();
+        });
 
-                findModeState = 'main';
-                createAllBalls(); // 全てのボールを生成して動き出す準備
+        // 設定に戻るボタン
+        backButton.addEventListener('click', () => {
+            // トレーニング画面を非表示
+            trainingScreen.classList.add('hidden');
+            trainingScreen.classList.remove('flex');
+            // 設定画面を表示
+            configScreen.classList.add('flex');
+            configScreen.classList.remove('hidden');
+        });
+
+        // --- トレーニング実行ロジック ---
+
+        // 次の問題を開始する
+        async function startNextProblem() {
+            // currentTrial++; // 削除
+            // if (currentTrial > maxTrials) { ... } // 削除
+
+            // UIリセット
+            // currentTrialSpan.textContent = currentTrial; // 削除
+            displayArea.innerHTML = '';
+            // スタイルをリセットし、準備中のスタイルを設定
+            displayArea.className = 'flex-grow flex justify-center items-center relative';
+            // answerArea.innerHTML = ''; // 削除
+            // answerArea.classList.add('hidden'); // 削除
+            playButton.classList.add('hidden');
+            nextButton.classList.add('hidden');
+
+            // 変更点: カウントダウン処理
+            displayArea.className = 'flex-grow flex justify-center items-center relative'; // テキストサイズは不要
+            
+            await sleep(500); // 準備の「間」
+
+            // 丸を保持するためのコンテナ
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'flex justify-center items-center text-7xl font-bold'; // 大きさと中央揃えをコンテナに指定
+            displayArea.appendChild(dotsContainer);
+
+            // 3つの丸を生成
+            const dot1 = document.createElement('div');
+            dot1.className = 'circle-dot bg-orange-400'; // 変更 (lime -> orange)
+            const dot2 = document.createElement('div');
+            dot2.className = 'circle-dot bg-orange-400'; // 変更 (lime -> orange)
+            const dot3 = document.createElement('div');
+            dot3.className = 'circle-dot bg-orange-400'; // 変更 (lime -> orange)
+
+            dotsContainer.appendChild(dot1);
+            dotsContainer.appendChild(dot2);
+            dotsContainer.appendChild(dot3);
+
+            await sleep(1000); // 3つ表示
+
+            dot1.classList.add('invisible'); // 左から1つ目を消す
+            await sleep(1000);
+
+            dot2.classList.add('invisible'); // 左から2つ目を消す
+            await sleep(1000);
+            
+            dot3.classList.add('invisible'); // 左から3つ目を消す (または親ごと消すためにinnerHTML='')
+            await sleep(1000); // 最後の1秒待機
+            
+            displayArea.innerHTML = ''; // 全部消す
+            // (ここまで変更)
+
+            // トレーニングタイプに応じて実行
+            switch (currentSettings.type) {
+                case 'number':
+                    await runNumberTraining();
+                    break;
+                case 'char':
+                    await runCharTraining();
+                    break;
+                case 'distributed':
+                    await runDistributedTraining();
+                    break;
+            }
+
+            // 要素消去後、▶︎ボタンを表示
+            displayArea.innerHTML = '';
+            // displayAreaのスタイルを念のためリセット
+            displayArea.className = 'flex-grow flex justify-center items-center relative';
+            playButton.classList.remove('hidden');
+        }
+
+        // 1. 数字の瞬間視
+        async function runNumberTraining() {
+            // 表示用のスタイルを設定
+            displayArea.className = 'flex-grow flex justify-center items-center relative text-7xl font-bold text-gray-900';
+            currentProblem = getRandomString(currentSettings.difficulty, 'number');
+            displayArea.textContent = currentProblem;
+            await sleep(currentSettings.displayTime);
+        }
+
+        // 2. 文字の瞬間視 (ひらがな/カタカナ混合)
+        async function runCharTraining() {
+            // 表示用のスタイルを設定
+            displayArea.className = 'flex-grow flex justify-center items-center relative text-7xl font-bold text-gray-900';
+            currentProblem = getRandomString(currentSettings.difficulty, 'char');
+            displayArea.textContent = currentProblem;
+            await sleep(currentSettings.displayTime);
+        }
+
+        // 3. 分散視・周辺視
+        async function runDistributedTraining() {
+            // 分sanshiは中央揃え不要、子要素のabsolute配置のため
+            // ★修正点: w-full を追加し、表示エリアが親の幅いっぱいに広がるようにする
+            displayArea.className = 'flex-grow relative w-full';
+            displayArea.innerHTML = ''; // 「よくみててね」 を消す
+            distributedAnswers = []; // 回答配列をリセット
+            
+            let charsToDisplay = [];
+
+            if (currentSettings.distributedType === 'B') {
+                // 種類B: 意味のある単語 (難易度無視、指定リストから)
+                const word = getRandomWord(); // 引数なしに変更
+                charsToDisplay = word.split('');
+                currentProblem = word; // 正解は単語そのもの
+            } else {
+                // 種類A: 意味なし文字 (平仮名のみ)
+                for (let i = 0; i < currentSettings.difficulty; i++) {
+                    const randomHiragana = hiraganaChars[Math.floor(Math.random() * hiraganaChars.length)];
+                    charsToDisplay.push(randomHiragana);
+                }
+                currentProblem = charsToDisplay.join(' '); // 正解はランダム文字の羅列
+            }
+
+            // 1文字ずつ順番に、ランダムな位置に表示
+            for (const char of charsToDisplay) {
+                distributedAnswers.push(char); // 表示順に保存
                 
-                // 3. 次のサイクル（色の切り替え）のタイマーをセット
-                const interval = parseInt(intervalRange.value, 10) * 1000;
-                findModeTimeoutId = setTimeout(runFindModeCycle, interval);
-            }, 2000); // 2秒間のプレビュー
-        }
-        
-        /**
-         * 探すターゲットの色を決め、ボール配列を空にする関数
-         */
-        function setupFindModeTarget() {
-            balls = []; // ★ボール配列を空にする
-            targetColor = findModeColors[Math.floor(Math.random() * findModeColors.length)];
-            targetColorDisplay.style.backgroundColor = targetColor;
-        }
-        
-        /**
-         * 全てのボールを生成し、動き始めさせる関数
-         */
-        function createAllBalls() {
-            const ballCount = parseInt(ballCountRange.value, 10);
-            const radius = parseInt(sizeRange.value, 10);
-            const speed = parseFloat(speedRange.value);
+                const charElement = document.createElement('span');
+                charElement.className = 'distributed-char';
+                charElement.textContent = char;
 
-            // ターゲットボールを作成して配列に追加
-            balls.push(createBall(radius, speed, targetColor));
-
-            // 残りのボールを作成して配列に追加
-            for (let i = 0; i < ballCount - 1; i++) {
-                let color = findModeColors[Math.floor(Math.random() * findModeColors.length)];
-                if (color === targetColor && ballCount < findModeColors.length * 2) {
-                    color = findModeColors[(findModeColors.indexOf(color) + 1) % findModeColors.length];
-                }
-                balls.push(createBall(radius, speed, color));
+                // 画面内のランダムな位置 (端に行きすぎないように 10% ～ 90% の範囲)
+                const top = getRandomInt(10, 90) + '%';
+                const left = getRandomInt(10, 90) + '%';
+                
+                charElement.style.top = top;
+                charElement.style.left = left;
+                
+                displayArea.appendChild(charElement);
+                await sleep(currentSettings.displayTime);
+                displayArea.removeChild(charElement); // 表示時間経過後に削除
+                
+                await sleep(100); // 次の文字までのインターバル
             }
         }
 
-        /**
-         * 指定された設定でボールオブジェクトを1つ作成するヘルパー関数
-         */
-        function createBall(radius, speed, color) {
-            const angle = Math.random() * Math.PI * 2;
-            return {
-                x: Math.random() * (canvas.width - radius * 2) + radius,
-                y: Math.random() * (canvas.height - radius * 2) + radius,
-                radius: radius,
-                color: color,
-                dx: Math.cos(angle) * speed,
-                dy: Math.sin(angle) * speed
-            };
-        }
+        // --- ボタン制御 (▶︎ と 次へ) ---
 
-        function drawFindMode() {
-            // 実行中でない場合はメッセージを表示
-            if (!isRunning) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 32px "M PLUS Rounded 1c"';
-                ctx.textAlign = 'center';
-                ctx.fillText('スタートボタンをおしてね！', canvas.width / 2, canvas.height / 2);
-                return;
-            }
+        // ▶︎ ボタン (正解表示)
+        playButton.addEventListener('click', () => {
+            // ▶︎ボタンを隠す
+            playButton.classList.add('hidden');
+
+            // 正解を displayArea に表示 (中央揃え、正解用スタイル)
+            displayArea.className = 'flex-grow flex justify-center items-center relative text-5xl md:text-6xl font-bold text-blue-700 p-8 text-center break-all';
             
-            // 実行中の場合はボールを描画（プレビュー中はballsが空なので何も描画されない）
-            balls.forEach(b => {
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-                ctx.fillStyle = b.color;
-                ctx.fill();
-                ctx.closePath();
-            });
-        }
-
-        function updateFindMode() {
-            // メイン状態のときだけボールを動かす
-            if (findModeState !== 'main') return;
-
-            balls.forEach(b => {
-                b.x += b.dx;
-                b.y += b.dy;
-                if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.dx *= -1;
-                if (b.y + b.radius > canvas.height || b.y - b.radius < 0) b.dy *= -1;
-            });
-        }
-        
-        // --- イベントリスナーの設定 ---
-        startButton.addEventListener('click', startAnimation);
-        stopButton.addEventListener('click', stopAnimation);
-        modeChaseButton.addEventListener('click', () => switchMode('chase'));
-        modeFindButton.addEventListener('click', () => switchMode('find'));
-        
-        // コントロールのイベントリスナー
-        colorPicker.addEventListener('input', (e) => {
-            if (gameMode === 'chase') {
-                ball.color = e.target.value;
-                if (!isRunning) draw();
-            }
-        });
-        bgColorPicker.addEventListener('input', (e) => {
-            if (!isRunning) draw();
-        });
-        
-        function updateSpeed() {
-            const speed = parseFloat(speedRange.value);
-            const updateTarget = (gameMode === 'chase') ? [ball] : balls;
-            
-            updateTarget.forEach(b => {
-                if(!b || (b.dx === 0 && b.dy === 0)) return; // 静止しているボールは速度を変えない
-                const currentSpeed = Math.sqrt(b.dx * b.dx + b.dy * b.dy);
-                if (currentSpeed > 0) {
-                    b.dx = (b.dx / currentSpeed) * speed;
-                    b.dy = (b.dy / currentSpeed) * speed;
+            if (currentSettings.type === 'distributed') {
+                // 分散視の場合
+                if (currentSettings.distributedType === 'B') {
+                    displayArea.textContent = currentProblem; // 単語
+                } else {
+                    displayArea.textContent = distributedAnswers.join(' '); 
                 }
-            });
-        }
-        speedRange.addEventListener('input', updateSpeed);
-
-        function updateSize() {
-            const radius = parseInt(sizeRange.value, 10);
-            if (gameMode === 'chase') {
-                ball.radius = radius;
             } else {
-                balls.forEach(b => b.radius = radius);
+                // 数字・文字の場合
+                displayArea.textContent = currentProblem;
             }
-            if (!isRunning) draw();
-        }
-        sizeRange.addEventListener('input', updateSize);
-        
-        ballCountRange.addEventListener('input', (e) => {
-            if (!isRunning && gameMode === 'find') {
-                setupFindModeTarget();
-                draw();
-            }
-        });
-        
-        intervalRange.addEventListener('input', (e) => {
-            // 実行中に時間を変更した場合でも、次のサイクルから適用される
+            // answerArea.classList.remove('hidden'); // 削除
+
+            // 「次の問題へ」ボタンを表示
+            nextButton.classList.remove('hidden');
         });
 
-        window.addEventListener('resize', resizeCanvas);
+        // 「次の問題へ」ボタン
+        nextButton.addEventListener('click', () => {
+            startNextProblem();
+        });
 
-        // --- 初期化処理 ---
-        function initialize() {
-            resizeCanvas();
-            stopButton.classList.add('opacity-50', 'cursor-not-allowed');
-            switchMode('chase'); // 最初はモード１で開始
-        }
-
-        window.onload = initialize;
     </script>
 </body>
 </html>
+
+
+
