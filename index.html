@@ -58,7 +58,7 @@
         /* トレーニング表示エリア (JS側で制御) */
         #display-area {
             /* * このエリアは JS によってクラスが制御されます。
-             * 1. 準備中: text-blue-500 text-5xl (よくみててね)
+             * 1. 準備中: (カウントダウンの丸)
              * 2. 問題表示: text-7xl font-bold (数字・文字)
              * 3. 分散視: (クラスなし、子要素がabsolute配置)
              * 4. 正解表示: text-5xl md:text-6xl font-bold text-blue-700 (正解)
@@ -73,7 +73,7 @@
             color: #111;
         }
 
-        /* 変更点: カウントダウン用の丸のCSS */
+        /* カウントダウン用の丸のCSS */
         .circle-dot {
             width: 3rem; /* 丸のサイズ */
             height: 3rem; /* 丸のサイズ */
@@ -100,40 +100,43 @@
             </div>
 
             <!-- 難易度設定 (トレーニング種類によって表示切替) --><div id="config-difficulty" class="space-y-4">
-                <label for="difficulty" class="block text-xl font-medium text-gray-700">難易度 (桁数 / 文字数)</label>
+                <!-- 変更点: ラベルの表記を変更 -->
+                <label for="difficulty" class="block text-xl font-medium text-gray-700">桁数 / 文字数</label>
                 <select id="difficulty" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
                     <option value="3">3</option>
                     <option value="4">4</option>
                     <option value="5" selected>5</option>
                     <option value="6">6</option>
                     <option value="7">7</option>
+                    <!-- 変更点: ランダムを追加 -->
+                    <option value="random">ランダム</option>
                 </select>
             </div>
             
             <!-- 分散視の種類 (分散視用) --><div id="config-distributed-type" class="space-y-4 hidden">
-                <label for="distributed-type" class="block text-xl font-medium text-gray-700">分散視の種類</option>
+                <label for="distributed-type" class="block text-xl font-medium text-gray-700">分散視の種類</label>
                 <select id="distributed-type" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
                     <option value="A">意味なし文字</option>
                     <option value="B">意味あり単語</option>
+                    <!-- 変更点: 数字を追加 -->
+                    <option value="number">数字</option>
                 </select>
             </div>
 
-            <!-- 表示時間 (秒単位に変更) --><div class="space-y-4">
+            <!-- 表示時間 --><div class="space-y-4">
                 <label for="display-time" class="block text-xl font-medium text-gray-700">表示時間 (秒)</label>
+                <!-- 変更点: オプションを変更 -->
                 <select id="display-time" class="custom-select w-full p-4 text-xl border border-gray-300 rounded-lg bg-gray-50 focus:border-blue-500 focus:ring-blue-500">
-                    <option value="0.01">0.01秒</option>
-                    <option value="0.05">0.05秒</option>
                     <option value="0.1">0.1秒</option>
-                    <option value="0.3">0.3秒</option>
                     <option value="0.5" selected>0.5秒</option>
-                    <option value="0.7">0.7秒</option>
                     <option value="1.0">1.0秒</option>
-                    <!-- 変更点: 1.5秒と2.0秒を追加 --><option value="1.5">1.5秒</option>
+                    <option value="1.5">1.5秒</option>
                     <option value="2.0">2.0秒</option>
+                    <option value="random">ランダム</option>
                 </select>
             </div>
 
-            <!-- 試行回数 (削除) --><!-- スタートボタン --><div class="pt-6">
+            <!-- スタートボタン --><div class="pt-6">
                 <button id="start-button" class="w-full bg-blue-600 text-white text-2xl font-bold py-6 rounded-lg shadow-md transition-transform active:scale-95">
                     トレーニング開始
                 </button>
@@ -141,15 +144,14 @@
         </div>
 
         <!-- 2. トレーニング実行画面 --><div id="training-screen" class="hidden flex-col h-full w-full">
-            <!-- ヘッダー (削除) --><!-- 戻るボタン (フッターに移動) --><!-- メインの表示エリア --><main class="flex-grow flex flex-col justify-center items-center w-full relative p-8">
+            <!-- メインの表示エリア --><main class="flex-grow flex flex-col justify-center items-center w-full relative p-8">
                 
                 <!-- 1. 数字や文字、正解が表示される場所 --><div id="display-area" class="flex-grow flex justify-center items-center relative">
                     <!-- JSによって内容とスタイルが制御されます --></div>
 
-                <!-- 2. 正解表示エリア (削除) --><!-- 3. コントロールボタンエリア (フッターとして画面下部に配置) --><footer class="w-full flex justify-between items-center h-24">
+                <!-- 3. コントロールボタンエリア (フッターとして画面下部に配置) --><footer class="w-full flex justify-between items-center h-24">
                     
                     <!-- 戻るボタン (左寄せ) --><button id="back-to-config-button" class="text-blue-600 text-lg py-2 px-4 rounded-lg active:bg-gray-200">
-                        <!-- 変更点: テキストをSVGアイコンに変更 -->
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
                         </svg>
@@ -160,13 +162,12 @@
                             ▶︎
                         </button>
 
-                        <!-- 3b. 次へ進むボタン (正解表示後に表示) --><!-- 変更点: スタイルを変更 (bg-green-600 -> bg-blue-500, text-2xl py-5 px-12 -> text-lg py-3 px-8) --><button id="next-button" class="hidden bg-blue-500 text-white text-lg font-bold py-3 px-8 rounded-lg shadow-md transition-transform active:scale-95">
+                        <!-- 3b. 次へ進むボタン (正解表示後に表示) --><button id="next-button" class="hidden bg-blue-500 text-white text-lg font-bold py-3 px-8 rounded-lg shadow-md transition-transform active:scale-95">
                             次の問題へ
                         </button>
                     </div>
 
                     <!-- 右側のスペーサー (戻るボタンと幅を合わせるため) --><div class="py-2 px-4 invisible">
-                        <!-- 変更点: テキストをSVGアイコンに変更 (invisibleなので見た目は変わりません) -->
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
                         </svg>
@@ -186,7 +187,6 @@
         const difficultySelect = document.getElementById('difficulty');
         const distributedTypeSelect = document.getElementById('distributed-type');
         const displayTimeSelect = document.getElementById('display-time');
-        // const maxTrialsInput = document.getElementById('max-trials'); // 削除
         
         const configDistributedType = document.getElementById('config-distributed-type');
         const configDifficulty = document.getElementById('config-difficulty');
@@ -194,19 +194,12 @@
         const startButton = document.getElementById('start-button');
         const backButton = document.getElementById('back-to-config-button');
         
-        // const trialInfo = document.getElementById('trial-info'); // 削除
-        // const currentTrialSpan = document.getElementById('current-trial'); // 削除
-        // const totalTrialsSpan = document.getElementById('total-trials'); // 削除
-        
         const displayArea = document.getElementById('display-area');
-        // const answerArea = document.getElementById('answer-area'); // 削除
         const playButton = document.getElementById('play-button');
         const nextButton = document.getElementById('next-button');
 
         // --- 状態管理変数 ---
         let currentSettings = {};
-        // let currentTrial = 0; // 削除
-        // let maxTrials = 0; // 削除
         let currentProblem = null; // 表示した問題（数字、文字列）
         let distributedAnswers = []; // 分散視の答え（順番通り）
 
@@ -229,7 +222,7 @@
             "サンドイッチ", "たんじょうび", "アイスクリーム"
         ];
         
-        // 変更点: 追加の単語リスト
+        // 追加の単語リスト
         const addedWordList = [
             "イヌ", "ネコ", "ゾウ", "キリン", "ライオン", "トラ", "パンダ", "ウサギ", "サル", "クマ",
             "こくご", "さんすう", "りか", "しゃかい", "おんがく", "たいいく", "かていか", "えいご",
@@ -246,7 +239,7 @@
             "き", "ち", "め", "て", "ひ", "え", "け", "す", "や"
         ];
 
-        // 重複を削除 (Setを使う) - 変更点: 2つのリストを結合して重複削除
+        // 重複を削除 (Setを使う) - 2つのリストを結合して重複削除
         const uniqueWordList = [...new Set([...wordList, ...addedWordList])];
 
 
@@ -268,16 +261,15 @@
                 return String(Math.floor(Math.random() * (10 ** length))).padStart(length, '0');
             }
             
-            // typeが 'char' または指定なしの場合 (★ひらがなのみに変更)
+            // typeが 'char' または指定なしの場合 (ひらがなのみ)
             let result = '';
             for (let i = 0; i < length; i++) {
-                // result += allChars[Math.floor(Math.random() * allChars.length)]; // 変更前
-                result += hiraganaChars[Math.floor(Math.random() * hiraganaChars.length)]; // 変更後
+                result += hiraganaChars[Math.floor(Math.random() * hiraganaChars.length)]; 
             }
             return result;
         };
 
-        // 単語リストからランダムに1つ取得 (難易度引数は無視)
+        // 単語リストからランダムに1つ取得
         const getRandomWord = () => {
             const list = uniqueWordList;
             if (!list || list.length === 0) {
@@ -294,33 +286,23 @@
             configDistributedType.classList.add('hidden');
             configDifficulty.classList.remove('hidden');
 
+            // 変更点: 難易度オプションに「ランダム」を常に追加
+            const difficultyOptions = `
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="random">ランダム</option>
+            `;
+
             if (type === 'number') {
-                difficultySelect.innerHTML = `
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5" selected>5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                `;
+                difficultySelect.innerHTML = difficultyOptions;
             } else if (type === 'char') {
-                difficultySelect.innerHTML = `
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5" selected>5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                `;
+                difficultySelect.innerHTML = difficultyOptions;
             } else if (type === 'distributed') {
                 configDistributedType.classList.remove('hidden');
-                // 種類B (単語) の場合は難易度設定は不要だが、
-                // 種類A のために難易度設定は残す
-            difficultySelect.innerHTML = `
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5" selected>5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                `;
+                difficultySelect.innerHTML = difficultyOptions;
             }
         });
 
@@ -331,15 +313,16 @@
             // 設定を保存
             currentSettings = {
                 type: trainingTypeSelect.value,
-                difficulty: parseInt(difficultySelect.value),
+                // 変更点: 'random' の場合は文字列として保存
+                difficulty: difficultySelect.value === 'random' ? 'random' : parseInt(difficultySelect.value),
                 distributedType: distributedTypeSelect.value,
-                displayTime: parseFloat(displayTimeSelect.value) * 1000, 
+                // 変更点: 'random' の場合は文字列として保存
+                displayTime: displayTimeSelect.value === 'random' ? 'random' : parseFloat(displayTimeSelect.value) * 1000, 
+                
+                // 実行時に解決されるプロパティ
+                resolvedDifficulty: 0,
+                resolvedDisplayTime: 0,
             };
-            // maxTrials = parseInt(maxTrialsInput.value) || 10; // 削除
-            // currentTrial = 0; // 削除
-
-            // 試行回数表示を更新 (削除)
-            // totalTrialsSpan.textContent = maxTrials; // 削除
             
             // 画面切り替え
             configScreen.classList.add('hidden');
@@ -363,22 +346,33 @@
 
         // --- トレーニング実行ロジック ---
 
+        // 変更点: ランダム設定を解決する関数
+        function resolveRandomSettings() {
+            // 難易度 (3〜7のランダム)
+            if (currentSettings.difficulty === 'random') {
+                currentSettings.resolvedDifficulty = getRandomInt(3, 7);
+            } else {
+                currentSettings.resolvedDifficulty = currentSettings.difficulty;
+            }
+
+            // 表示時間 (0.1, 0.5, 1.0, 1.5, 2.0からランダム)
+            if (currentSettings.displayTime === 'random') {
+                const randomTimes = [100, 500, 1000, 1500, 2000]; // ms単位
+                currentSettings.resolvedDisplayTime = randomTimes[Math.floor(Math.random() * randomTimes.length)];
+            } else {
+                currentSettings.resolvedDisplayTime = currentSettings.displayTime;
+            }
+        }
+
         // 次の問題を開始する
         async function startNextProblem() {
-            // currentTrial++; // 削除
-            // if (currentTrial > maxTrials) { ... } // 削除
-
             // UIリセット
-            // currentTrialSpan.textContent = currentTrial; // 削除
             displayArea.innerHTML = '';
-            // スタイルをリセットし、準備中のスタイルを設定
             displayArea.className = 'flex-grow flex justify-center items-center relative';
-            // answerArea.innerHTML = ''; // 削除
-            // answerArea.classList.add('hidden'); // 削除
             playButton.classList.add('hidden');
             nextButton.classList.add('hidden');
 
-            // 変更点: カウントダウン処理
+            // カウントダウン処理
             displayArea.className = 'flex-grow flex justify-center items-center relative'; // テキストサイズは不要
             
             await sleep(500); // 準備の「間」
@@ -390,11 +384,11 @@
 
             // 3つの丸を生成
             const dot1 = document.createElement('div');
-            dot1.className = 'circle-dot bg-orange-400'; // 変更 (lime -> orange)
+            dot1.className = 'circle-dot bg-orange-400';
             const dot2 = document.createElement('div');
-            dot2.className = 'circle-dot bg-orange-400'; // 変更 (lime -> orange)
+            dot2.className = 'circle-dot bg-orange-400';
             const dot3 = document.createElement('div');
-            dot3.className = 'circle-dot bg-orange-400'; // 変更 (lime -> orange)
+            dot3.className = 'circle-dot bg-orange-400';
 
             dotsContainer.appendChild(dot1);
             dotsContainer.appendChild(dot2);
@@ -408,11 +402,13 @@
             dot2.classList.add('invisible'); // 左から2つ目を消す
             await sleep(1000);
             
-            dot3.classList.add('invisible'); // 左から3つ目を消す (または親ごと消すためにinnerHTML='')
+            dot3.classList.add('invisible'); // 左から3つ目を消す
             await sleep(1000); // 最後の1秒待機
             
             displayArea.innerHTML = ''; // 全部消す
-            // (ここまで変更)
+
+            // ★追加: ランダム設定を解決
+            resolveRandomSettings();
 
             // トレーニングタイプに応じて実行
             switch (currentSettings.type) {
@@ -438,38 +434,52 @@
         async function runNumberTraining() {
             // 表示用のスタイルを設定
             displayArea.className = 'flex-grow flex justify-center items-center relative text-7xl font-bold text-gray-900';
-            currentProblem = getRandomString(currentSettings.difficulty, 'number');
+            // 変更点: 解決済みの難易度を使用
+            currentProblem = getRandomString(currentSettings.resolvedDifficulty, 'number');
             displayArea.textContent = currentProblem;
-            await sleep(currentSettings.displayTime);
+            // 変更点: 解決済みの表示時間を使用
+            await sleep(currentSettings.resolvedDisplayTime);
         }
 
-        // 2. 文字の瞬間視 (ひらがな/カタカナ混合)
+        // 2. 文字の瞬間視 (ひらがな)
         async function runCharTraining() {
             // 表示用のスタイルを設定
             displayArea.className = 'flex-grow flex justify-center items-center relative text-7xl font-bold text-gray-900';
-            currentProblem = getRandomString(currentSettings.difficulty, 'char');
+            // 変更点: 解決済みの難易度を使用
+            currentProblem = getRandomString(currentSettings.resolvedDifficulty, 'char');
             displayArea.textContent = currentProblem;
-            await sleep(currentSettings.displayTime);
+            // 変更点: 解決済みの表示時間を使用
+            await sleep(currentSettings.resolvedDisplayTime);
         }
 
         // 3. 分散視・周辺視
         async function runDistributedTraining() {
-            // 分sanshiは中央揃え不要、子要素のabsolute配置のため
             // ★修正点: w-full を追加し、表示エリアが親の幅いっぱいに広がるようにする
             displayArea.className = 'flex-grow relative w-full';
-            displayArea.innerHTML = ''; // 「よくみててね」 を消す
+            displayArea.innerHTML = ''; 
             distributedAnswers = []; // 回答配列をリセット
             
             let charsToDisplay = [];
+            const difficulty = currentSettings.resolvedDifficulty; // 変更点: 解決済みの難易度を使用
 
             if (currentSettings.distributedType === 'B') {
-                // 種類B: 意味のある単語 (難易度無視、指定リストから)
-                const word = getRandomWord(); // 引数なしに変更
+                // 種類B: 意味のある単語 (難易度無視)
+                const word = getRandomWord();
                 charsToDisplay = word.split('');
                 currentProblem = word; // 正解は単語そのもの
+            
+            // 変更点: 種類「数字」の処理を追加
+            } else if (currentSettings.distributedType === 'number') {
+                // 種類「数字」
+                for (let i = 0; i < difficulty; i++) {
+                    const randomNum = String(getRandomInt(0, 9)); // 0-9の数字
+                    charsToDisplay.push(randomNum);
+                }
+                currentProblem = charsToDisplay.join(' '); // 正解はランダム数字の羅列
+
             } else {
                 // 種類A: 意味なし文字 (平仮名のみ)
-                for (let i = 0; i < currentSettings.difficulty; i++) {
+                for (let i = 0; i < difficulty; i++) {
                     const randomHiragana = hiraganaChars[Math.floor(Math.random() * hiraganaChars.length)];
                     charsToDisplay.push(randomHiragana);
                 }
@@ -492,7 +502,8 @@
                 charElement.style.left = left;
                 
                 displayArea.appendChild(charElement);
-                await sleep(currentSettings.displayTime);
+                // 変更点: 解決済みの表示時間を使用
+                await sleep(currentSettings.resolvedDisplayTime);
                 displayArea.removeChild(charElement); // 表示時間経過後に削除
                 
                 await sleep(100); // 次の文字までのインターバル
@@ -514,13 +525,13 @@
                 if (currentSettings.distributedType === 'B') {
                     displayArea.textContent = currentProblem; // 単語
                 } else {
+                    // 種類A (意味なし文字) または 種類「数字」
                     displayArea.textContent = distributedAnswers.join(' '); 
                 }
             } else {
                 // 数字・文字の場合
                 displayArea.textContent = currentProblem;
             }
-            // answerArea.classList.remove('hidden'); // 削除
 
             // 「次の問題へ」ボタンを表示
             nextButton.classList.remove('hidden');
@@ -534,7 +545,3 @@
     </script>
 </body>
 </html>
-
-
-
-
